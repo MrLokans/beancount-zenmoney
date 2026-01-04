@@ -33,9 +33,9 @@ if [[ ! -f "pyproject.toml" ]]; then
     error "Must be run from repository root (pyproject.toml not found)"
 fi
 
-# Check for uncommitted changes
-if [[ -n "$(git status --porcelain)" ]]; then
-    error "Working directory is not clean. Commit or stash changes first."
+# Check for uncommitted changes (ignore untracked files)
+if [[ -n "$(git status --porcelain | grep -v '^?? ')" ]]; then
+    error "Working directory has staged or unstaged changes. Commit or stash changes first."
 fi
 
 # Check tag doesn't exist locally
