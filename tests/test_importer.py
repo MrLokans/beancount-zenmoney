@@ -14,26 +14,22 @@ class TestZenMoneyImporterIdentify:
     """Tests for the identify method."""
 
     def test_identify_valid_csv(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that importer identifies valid ZenMoney CSV files."""
         importer = ZenMoneyImporter(account_map=account_map)
         assert importer.identify(sample_csv_path) is True
 
     def test_identify_wrong_extension(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that importer rejects non-CSV files."""
         txt_file = tmp_path / "test.txt"
         txt_file.write_text("some content")
         importer = ZenMoneyImporter(account_map=account_map)
         assert importer.identify(str(txt_file)) is False
 
     def test_identify_wrong_csv_format(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that importer rejects CSV files without ZenMoney headers."""
         csv_file = tmp_path / "other.csv"
         csv_file.write_text("col1;col2;col3\nval1;val2;val3\n")
         importer = ZenMoneyImporter(account_map=account_map)
         assert importer.identify(str(csv_file)) is False
 
     def test_identify_zenmoney_headers(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that importer identifies files with ZenMoney headers."""
         csv_file = tmp_path / "zen.csv"
         csv_file.write_text(
             "date;categoryName;payee;comment;outcomeAccountName;outcome;"
@@ -48,12 +44,10 @@ class TestZenMoneyImporterAccount:
     """Tests for the account method."""
 
     def test_account_returns_base_account(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that account method returns the configured base account."""
         importer = ZenMoneyImporter(account_map=account_map, base_account="Assets:Import:ZenMoney")
         assert importer.account(sample_csv_path) == "Assets:Import:ZenMoney"
 
     def test_account_default(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test default base account."""
         importer = ZenMoneyImporter(account_map=account_map)
         assert importer.account(sample_csv_path) == "Assets:ZenMoney"
 
@@ -62,14 +56,12 @@ class TestZenMoneyImporterExtract:
     """Tests for the extract method."""
 
     def test_extract_returns_list(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that extract returns a list of directives."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         assert isinstance(entries, list)
         assert len(entries) > 0
 
     def test_extract_transaction_count(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that correct number of transactions are extracted."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         # Test CSV has 20 rows of data
@@ -77,7 +69,6 @@ class TestZenMoneyImporterExtract:
         assert len(transactions) == 20
 
     def test_extract_simple_expense(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of a simple expense transaction."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -97,7 +88,6 @@ class TestZenMoneyImporterExtract:
         assert len(grocery_txn.postings) == 2
 
     def test_extract_income_transaction(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of income (salary) transaction."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -117,7 +107,6 @@ class TestZenMoneyImporterExtract:
         assert "DECEMBER SALARY" in (salary_txn.narration or "")
 
     def test_extract_internal_transfer(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of internal bank transfer."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -139,7 +128,6 @@ class TestZenMoneyImporterExtract:
         assert "Assets:Bank:DigitalWallet:PLN" in accounts
 
     def test_extract_currency_exchange(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of currency exchange transaction."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -161,7 +149,6 @@ class TestZenMoneyImporterExtract:
         assert "EUR" in currencies
 
     def test_extract_refund_transaction(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of refund (income from expense category)."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -180,7 +167,6 @@ class TestZenMoneyImporterExtract:
         assert refund_txn.payee == "Refund Store"
 
     def test_extract_eur_transaction(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test extraction of EUR currency transaction."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -204,7 +190,6 @@ class TestZenMoneyImporterExtract:
         account_map: dict[str, str],
         category_map: dict[str, str],
     ) -> None:
-        """Test that categories are mapped to correct expense accounts."""
         importer = ZenMoneyImporter(account_map=account_map, category_map=category_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -216,7 +201,6 @@ class TestZenMoneyImporterExtract:
         assert "Expenses:Housing:Rent" in expense_accounts
 
     def test_extract_unknown_category_uses_default(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that unknown categories use a default expense account."""
         importer = ZenMoneyImporter(
             account_map=account_map,
             category_map={},  # Empty map - all categories unknown
@@ -232,7 +216,6 @@ class TestZenMoneyImporterExtract:
                     assert posting.account == "Expenses:Uncategorized"
 
     def test_extract_preserves_transaction_date(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that transaction dates are correctly parsed."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -246,7 +229,6 @@ class TestZenMoneyImporterEdgeCases:
     """Tests for edge cases and error handling."""
 
     def test_empty_payee_uses_comment(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that empty payee falls back to comment."""
         csv_file = tmp_path / "zen.csv"
         csv_file.write_text(
             "date;categoryName;payee;comment;outcomeAccountName;outcome;"
@@ -264,7 +246,6 @@ class TestZenMoneyImporterEdgeCases:
         assert "ACCOUNT FEE" in (transactions[0].narration or transactions[0].payee or "")
 
     def test_handles_utf8_bom(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that UTF-8 BOM is handled correctly."""
         csv_file = tmp_path / "zen.csv"
         content = (
             "\ufeffdate;categoryName;payee;comment;outcomeAccountName;outcome;"
@@ -281,7 +262,6 @@ class TestZenMoneyImporterEdgeCases:
         assert len(entries) == 1
 
     def test_unknown_account_raises_or_uses_default(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test handling of unknown accounts."""
         csv_file = tmp_path / "zen.csv"
         csv_file.write_text(
             "date;categoryName;payee;comment;outcomeAccountName;outcome;"
@@ -304,7 +284,6 @@ class TestCurrencyExchange:
     """Tests for currency exchange handling."""
 
     def test_currency_exchange_has_price_annotation(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that currency exchange transactions have price annotations."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -332,14 +311,12 @@ class TestDateMethod:
     """Tests for the date() method."""
 
     def test_date_returns_latest_transaction_date(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that date() returns the latest transaction date from file."""
         importer = ZenMoneyImporter(account_map=account_map)
         file_date = importer.date(sample_csv_path)
         # The test CSV has transactions from 2025-11-29 to 2025-12-15
         assert file_date == date(2025, 12, 15)
 
     def test_date_returns_none_for_empty_file(self, tmp_path: Path, account_map: dict[str, str]) -> None:
-        """Test that date() returns None for file with no transactions."""
         csv_file = tmp_path / "empty.csv"
         csv_file.write_text(
             "date;categoryName;payee;comment;outcomeAccountName;outcome;"
@@ -354,7 +331,6 @@ class TestFilenameMethod:
     """Tests for the filename() method."""
 
     def test_filename_returns_clean_name(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that filename() returns a clean filename."""
         importer = ZenMoneyImporter(account_map=account_map)
         filename = importer.filename(sample_csv_path)
         assert filename is not None
@@ -362,7 +338,6 @@ class TestFilenameMethod:
         assert "zenmoney" in filename.lower()
 
     def test_filename_includes_date_range(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that filename includes the date range of transactions."""
         importer = ZenMoneyImporter(account_map=account_map)
         filename = importer.filename(sample_csv_path)
         assert filename is not None
@@ -374,7 +349,6 @@ class TestMetadata:
     """Tests for transaction metadata."""
 
     def test_line_numbers_in_metadata(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that transactions have correct line numbers in metadata."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -386,7 +360,6 @@ class TestMetadata:
         assert 2 in line_numbers
 
     def test_timestamps_in_metadata(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that ZenMoney timestamps are preserved in metadata."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -397,7 +370,6 @@ class TestMetadata:
         assert "zenmoney_changed" in first_txn.meta
 
     def test_category_in_metadata(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that original ZenMoney category is preserved in metadata."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -414,7 +386,6 @@ class TestFlagConfiguration:
     """Tests for transaction flag configuration."""
 
     def test_default_flag_is_cleared(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that default flag is * (cleared)."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
@@ -422,9 +393,97 @@ class TestFlagConfiguration:
         assert all(t.flag == "*" for t in transactions)
 
     def test_custom_flag(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
-        """Test that custom flag can be configured."""
         importer = ZenMoneyImporter(account_map=account_map, flag="!")
         entries = importer.extract(sample_csv_path, existing=[])
         transactions = [e for e in entries if isinstance(e, Transaction)]
 
         assert all(t.flag == "!" for t in transactions)
+
+
+class TestAutoTagging:
+    """Tests for auto-tagging based on category."""
+
+    def test_no_tags_without_tag_map(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
+        importer = ZenMoneyImporter(account_map=account_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        assert all(len(t.tags) == 0 for t in transactions)
+
+    def test_single_tag_from_category(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
+        tag_map = {"Food / Groceries": "groceries"}
+        importer = ZenMoneyImporter(account_map=account_map, tag_map=tag_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        # Find the groceries transaction (SuperMarket XYZ on 2025-12-14)
+        grocery_txn = next(
+            (t for t in transactions if t.date == date(2025, 12, 14) and t.payee == "SuperMarket XYZ"),
+            None,
+        )
+        assert grocery_txn is not None
+        assert "groceries" in grocery_txn.tags
+
+    def test_multiple_tags_from_category(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
+        tag_map = {"Food / Groceries": {"groceries", "food", "essentials"}}
+        importer = ZenMoneyImporter(account_map=account_map, tag_map=tag_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        # Find the groceries transaction
+        grocery_txn = next(
+            (t for t in transactions if t.date == date(2025, 12, 14) and t.payee == "SuperMarket XYZ"),
+            None,
+        )
+        assert grocery_txn is not None
+        assert "groceries" in grocery_txn.tags
+        assert "food" in grocery_txn.tags
+        assert "essentials" in grocery_txn.tags
+
+    def test_no_tag_for_unmapped_category(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
+        tag_map = {"Food / Groceries": "groceries"}  # Only groceries mapped
+        importer = ZenMoneyImporter(account_map=account_map, tag_map=tag_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        # Find a restaurant transaction (not in tag_map)
+        restaurant_txn = next(
+            (t for t in transactions if t.meta.get("zenmoney_category") == "Food / Restaurant"),
+            None,
+        )
+        assert restaurant_txn is not None
+        assert len(restaurant_txn.tags) == 0
+
+    def test_multiple_categories_with_tags(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
+        tag_map = {
+            "Food / Groceries": "groceries",
+            "Food / Restaurant": "dining",
+            "Salary": "income",
+        }
+        importer = ZenMoneyImporter(account_map=account_map, tag_map=tag_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        # Check groceries
+        grocery_txn = next(
+            (t for t in transactions if t.meta.get("zenmoney_category") == "Food / Groceries"),
+            None,
+        )
+        assert grocery_txn is not None
+        assert "groceries" in grocery_txn.tags
+
+        # Check restaurant
+        restaurant_txn = next(
+            (t for t in transactions if t.meta.get("zenmoney_category") == "Food / Restaurant"),
+            None,
+        )
+        assert restaurant_txn is not None
+        assert "dining" in restaurant_txn.tags
+
+        # Check salary
+        salary_txn = next(
+            (t for t in transactions if t.meta.get("zenmoney_category") == "Salary"),
+            None,
+        )
+        assert salary_txn is not None
+        assert "income" in salary_txn.tags

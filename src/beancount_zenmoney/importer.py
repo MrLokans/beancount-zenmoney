@@ -42,6 +42,7 @@ class ZenMoneyImporter(Importer):
         self,
         account_map: dict[str, str],
         category_map: dict[str, str] | None = None,
+        tag_map: dict[str, str | set[str]] | None = None,
         base_account: str = "Assets:ZenMoney",
         default_expense: str = "Expenses:Unknown",
         default_income: str = "Income:Unknown",
@@ -50,6 +51,7 @@ class ZenMoneyImporter(Importer):
     ) -> None:
         self._account_map = account_map
         self._category_map = category_map or {}
+        self._tag_map = tag_map or {}
         self._base_account = base_account
         self._default_expense = default_expense
         self._default_income = default_income
@@ -192,13 +194,15 @@ class ZenMoneyImporter(Importer):
         if category:
             meta["zenmoney_category"] = category
 
+        tags = self._get_tags_for_category(category)
+
         return Transaction(
             meta=meta,
             date=txn_date,
             flag=self._flag,
             payee=txn_payee,
             narration=narration,
-            tags=frozenset(),
+            tags=tags,
             links=frozenset(),
             postings=postings,
         )
@@ -324,3 +328,12 @@ class ZenMoneyImporter(Importer):
         if category in self._category_map:
             return self._category_map[category]
         return self._default_expense if is_expense else self._default_income
+
+    def _get_tags_for_category(self, category: str) -> frozenset[str]:
+        if not category or category not in self._tag_map:
+            return frozenset()
+
+        tags = self._tag_map[category]
+        if isinstance(tags, str):
+            return frozenset({tags})
+        return frozenset(tags)
