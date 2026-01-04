@@ -65,6 +65,10 @@ sed -i.bak "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml && rm 
 info "Updating version in src/beancount_zenmoney/__init__.py..."
 sed -i.bak "s/^__version__ = \".*\"/__version__ = \"${VERSION}\"/" src/beancount_zenmoney/__init__.py && rm src/beancount_zenmoney/__init__.py.bak
 
+# Update uv.lock with new version
+info "Syncing uv.lock..."
+uv sync || error "Failed to sync uv.lock"
+
 # Verify updates
 UPDATED_PYPROJECT=$(grep '^version = ' pyproject.toml | head -1)
 UPDATED_INIT=$(grep '^__version__ = ' src/beancount_zenmoney/__init__.py)
@@ -73,7 +77,7 @@ info "Updated __init__.py: ${UPDATED_INIT}"
 
 # Commit version bump
 info "Committing version bump..."
-git add pyproject.toml src/beancount_zenmoney/__init__.py
+git add pyproject.toml src/beancount_zenmoney/__init__.py uv.lock
 git commit -m "Release ${TAG}"
 
 # Create tag
