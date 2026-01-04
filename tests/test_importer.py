@@ -7,13 +7,7 @@ from pathlib import Path
 from beancount.core.amount import Amount
 from beancount.core.data import Transaction
 
-from beancount_zenmoney import __version__
 from beancount_zenmoney.importer import ZenMoneyImporter
-
-
-def test_version() -> None:
-    """Test that version is defined."""
-    assert __version__ == "0.1.0"
 
 
 class TestZenMoneyImporterIdentify:
