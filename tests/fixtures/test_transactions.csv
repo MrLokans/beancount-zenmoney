@@ -1,0 +1,21 @@
+date;categoryName;payee;comment;outcomeAccountName;outcome;outcomeCurrencyShortTitle;incomeAccountName;income;incomeCurrencyShortTitle;createdDate;changedDate;qrCode
+2025-12-15;"Salary";"ACME CORP SP ZOO";"DECEMBER SALARY";"MainBank - PLN";"0";PLN;"MainBank - PLN";"15000";PLN;"2025-12-15 00:00:00";"2025-12-15 12:00:00";
+2025-12-14;"Food / Groceries";"SuperMarket XYZ";;"DigitalWallet - PLN";"125.50";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-14 10:30:00";"2025-12-14 11:00:00";
+2025-12-14;"Transport / Taxi";"RIDESHARE.APP";;"DigitalWallet - PLN";"28.90";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-14 18:45:00";"2025-12-14 19:00:00";
+2025-12-13;"Subscriptions";"CloudService Monthly";;"DigitalWallet - EUR";"9.99";EUR;"DigitalWallet - EUR";"0";EUR;"2025-12-13 08:00:00";"2025-12-13 09:00:00";
+2025-12-13;"Health & Fitness";"GYM MEMBERSHIP";;"MainBank - PLN";"150";PLN;"MainBank - PLN";"0";PLN;"2025-12-13 00:00:00";"2025-12-13 12:00:00";
+2025-12-12;;;"FX EXCHANGE EUR/PLN 4.25";"MainBank - PLN";"4250";PLN;"MainBank - EUR";"1000";EUR;"2025-12-12 00:00:00";"2025-12-12 10:00:00";
+2025-12-11;;;;"MainBank - PLN";"2000";PLN;"DigitalWallet - PLN";"2000";PLN;"2025-12-11 14:00:00";"2025-12-11 14:30:00";
+2025-12-10;"Food / Restaurant";"Cafe Downtown";;"DigitalWallet - PLN";"89.00";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-10 13:00:00";"2025-12-10 13:30:00";
+2025-12-10;"Food / Coffee";"Coffee Shop";;"DigitalWallet - PLN";"18";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-10 09:15:00";"2025-12-10 09:30:00";
+2025-12-09;"Housing / Rent";"LANDLORD";"MONTHLY RENT";"MainBank - PLN";"3500";PLN;"MainBank - PLN";"0";PLN;"2025-12-09 00:00:00";"2025-12-09 10:00:00";
+2025-12-08;"Bank Fees";;"ACCOUNT MAINTENANCE FEE";"MainBank - PLN";"15";PLN;"MainBank - PLN";"0";PLN;"2025-12-08 00:00:01";"2025-12-08 12:00:00";
+2025-12-07;"Gifts";"Online Store";;"DigitalWallet - PLN";"250";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-07 16:00:00";"2025-12-07 16:30:00";
+2025-12-06;"Travel / Accommodation";"Booking Platform";;"DigitalWallet - EUR";"185.50";EUR;"DigitalWallet - EUR";"0";EUR;"2025-12-06 20:00:00";"2025-12-06 20:30:00";
+2025-12-05;"Family / Support";"12345678901234567890";;"MainBank - PLN";"500";PLN;"MainBank - PLN";"0";PLN;"2025-12-05 00:00:00";"2025-12-05 10:00:00";
+2025-12-04;"Electronics";"TECH STORE";"Smartphone case";"MainBank - PLN";"79.99";PLN;"MainBank - PLN";"0";PLN;"2025-12-04 00:00:00";"2025-12-04 12:00:00";
+2025-12-03;"Food / Delivery";"FoodDeliveryApp";;"MainBank - PLN";"65.50";PLN;"MainBank - PLN";"0";PLN;"2025-12-03 19:00:00";"2025-12-03 19:30:00";
+2025-12-02;;;"From Friend A";"DigitalWallet - PLN";"0";PLN;"DigitalWallet - PLN";"150";PLN;"2025-12-02 15:00:00";"2025-12-02 15:30:00";
+2025-12-01;"Food / Restaurant";"Refund Store";;"DigitalWallet - PLN";"0";PLN;"DigitalWallet - PLN";"35.50";PLN;"2025-12-01 10:00:00";"2025-12-01 10:30:00";
+2025-11-30;"Cloud Services";"HostingProvider";;"MainBank - EUR";"12.50";EUR;"MainBank - EUR";"0";EUR;"2025-11-30 00:00:00";"2025-11-30 12:00:00";
+2025-11-29;"Entertainment / Games";"GameStore";;"DigitalWallet - PLN";"49.99";PLN;"DigitalWallet - PLN";"0";PLN;"2025-11-29 21:00:00";"2025-11-29 21:30:00";
