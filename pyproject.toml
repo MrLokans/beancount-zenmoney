@@ -1,0 +1,84 @@
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10"]
+build-backend = "uv_build"
+
+[project]
+name = "beancount-zenmoney"
+version = "0.1.0"
+description = "Beancount importer for Zenmoney exports"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Andrei Sviridov" },
+]
+keywords = [
+    "beancount",
+    "beangulp",
+    "zenmoney",
+    "importer",
+    "accounting",
+    "finance",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+dependencies = [
+    "beancount>=3.0.0",
+    "beangulp>=0.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.8.0",
+    "ty>=0.0.1a6",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/beancount-zenmoney"
+Repository = "https://github.com/yourusername/beancount-zenmoney"
+Issues = "https://github.com/yourusername/beancount-zenmoney/issues"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+]
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=beancount_zenmoney --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/beancount_zenmoney"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
