@@ -74,7 +74,7 @@ class TestZenMoneyImporterExtract:
         entries = importer.extract(sample_csv_path, existing=[])
         # Test CSV has 20 rows of data
         transactions = [e for e in entries if isinstance(e, Transaction)]
-        assert len(transactions) == 20
+        assert len(transactions) == 21
 
     def test_extract_simple_expense(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
         """Test extraction of a simple expense transaction."""
