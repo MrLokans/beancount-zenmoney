@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from beancount_zenmoney.importer import DualCategoryMapValue
+
 
 @pytest.fixture
 def fixtures_dir() -> Path:
@@ -35,7 +37,7 @@ def account_map() -> dict[str, str]:
 
 
 @pytest.fixture
-def category_map() -> dict[str, str]:
+def category_map() -> dict[str, str | DualCategoryMapValue]:
     """Return a mapping from ZenMoney categories to Beancount accounts."""
     return {
         "Salary": "Income:Salary",
@@ -54,4 +56,5 @@ def category_map() -> dict[str, str]:
         "Electronics": "Expenses:Shopping:Electronics",
         "Cloud Services": "Expenses:Subscriptions:Cloud",
         "Entertainment / Games": "Expenses:Entertainment:Games",
+        "DualCategory": {"income": "Income:Dual", "expense": "Expenses:Dual"},
     }
