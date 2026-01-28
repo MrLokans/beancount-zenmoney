@@ -83,6 +83,9 @@ ZenMoneyImporter(
     # Optional: Default asset account for unknown Zenmoney accounts
     default_account="Assets:Unknown",
 
+    # Optional: Default expense account for commission in same-currency transfers
+    default_commission_expense="Expenses:Financial:Commissions",
+
     # Optional: Transaction flag - "*" for cleared (default), "!" for pending
     flag="!",
 )
@@ -109,6 +112,21 @@ Currency exchanges automatically include price annotations for proper cost track
   Assets:Bank:PKO:PLN   -4250.00 PLN
   Assets:Bank:PKO:EUR    1000.00 EUR @ 4.25 PLN
 ```
+
+### Commission Handling in Transfers
+
+When a same-currency transfer occurs with a difference between the outcome and income amounts, the difference is automatically treated as a commission and posted to a configurable expense account (`Expenses:Financial:Commissions` by default).
+
+For example, a transfer of 200 PLN out and 195 PLN in from the same currency would result in an additional posting:
+
+```beancount
+2025-02-03 * "Bank Transfer Fee" "Transfer fee"
+  Assets:Bank:MainBank:PLN       -200.00 PLN
+  Assets:Bank:DigitalWallet:PLN    195.00 PLN
+  Expenses:Financial:Commissions     5.00 PLN
+```
+
+This ensures that such transactions balance correctly in Beancount.
 
 ### Metadata Preservation
 

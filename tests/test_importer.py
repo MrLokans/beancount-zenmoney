@@ -6,6 +6,7 @@ from pathlib import Path
 
 from beancount.core.amount import Amount
 from beancount.core.data import Transaction
+from beancount.core.inventory import Inventory
 
 from beancount_zenmoney.importer import ZenMoneyImporter
 
@@ -72,9 +73,59 @@ class TestZenMoneyImporterExtract:
         """Test that correct number of transactions are extracted."""
         importer = ZenMoneyImporter(account_map=account_map)
         entries = importer.extract(sample_csv_path, existing=[])
-        # Test CSV has 20 rows of data
+        # Test CSV has 21 rows of data (including the new commission transaction)
         transactions = [e for e in entries if isinstance(e, Transaction)]
-        assert len(transactions) == 20
+        assert len(transactions) == 21
+
+    def test_extract_same_currency_transfer_with_commission(
+        self,
+        sample_csv_path: str,
+        account_map: dict[str, str],
+    ) -> None:
+        """Test that same-currency transfers with a commission are balanced correctly."""
+        importer = ZenMoneyImporter(account_map=account_map)
+        entries = importer.extract(sample_csv_path, existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        commission_txn = next(
+            (
+                t
+                for t in transactions
+                if t.date == date(2025, 2, 3)
+                and "Transfer fee" in (t.narration or "")
+            ),
+            None,
+        )
+        assert commission_txn is not None
+        assert commission_txn.payee == "Bank Transfer Fee"
+        assert commission_txn.narration == "Transfer fee"
+
+        # Verify postings
+        assert len(commission_txn.postings) == 3
+
+        # Outcome posting
+        p_outcome = next(
+            p for p in commission_txn.postings if p.account == "Assets:Bank:MainBank:PLN"
+        )
+        assert p_outcome.units == Amount(Decimal("-200.00"), "PLN")
+
+        # Income posting
+        p_income = next(
+            p for p in commission_txn.postings if p.account == "Assets:Bank:DigitalWallet:PLN"
+        )
+        assert p_income.units == Amount(Decimal("195.00"), "PLN")
+
+        # Commission posting
+        p_commission = next(
+            p for p in commission_txn.postings if p.account == "Expenses:Financial:Commissions"
+        )
+        assert p_commission.units == Amount(Decimal("5.00"), "PLN")
+
+        # Verify transaction balances
+        balance = Inventory()
+        for posting in commission_txn.postings:
+            balance.add_position(posting)
+        assert balance.is_empty()
 
     def test_extract_simple_expense(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
         """Test extraction of a simple expense transaction."""
@@ -227,6 +278,10 @@ class TestZenMoneyImporterExtract:
 
         # All expense transactions should use default account
         for txn in transactions:
+            # Skip the commission transaction as its expense account is explicitly set
+            if "Transfer fee" in (txn.narration or ""):
+                continue
+
             for posting in txn.postings:
                 if posting.account.startswith("Expenses:"):
                     assert posting.account == "Expenses:Uncategorized"

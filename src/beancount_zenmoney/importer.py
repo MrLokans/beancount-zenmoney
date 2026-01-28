@@ -46,6 +46,7 @@ class ZenMoneyImporter(Importer):
         default_expense: str = "Expenses:Unknown",
         default_income: str = "Income:Unknown",
         default_account: str | None = None,
+        default_commission_expense: str = "Expenses:Financial:Commissions",
         flag: str = "*",
     ) -> None:
         self._account_map = account_map
@@ -54,6 +55,7 @@ class ZenMoneyImporter(Importer):
         self._default_expense = default_expense
         self._default_income = default_income
         self._default_account = default_account
+        self._default_commission_expense = default_commission_expense
         self._flag = flag
 
     def identify(self, filepath: str) -> bool:
@@ -263,6 +265,20 @@ class ZenMoneyImporter(Importer):
                         None,
                     )
                 )
+                # If outcome and income are in the same currency but different amounts,
+                # the difference is a commission.
+                if outcome != income:
+                    commission_amount = outcome - income
+                    postings.append(
+                        Posting(
+                            self._default_commission_expense,
+                            Amount(commission_amount, outcome_currency),
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                    )
         elif has_outcome:
             # Expense transaction
             expense_account = self._map_category(category, is_expense=True)
