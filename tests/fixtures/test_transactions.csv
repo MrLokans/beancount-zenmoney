@@ -19,3 +19,4 @@ date;categoryName;payee;comment;outcomeAccountName;outcome;outcomeCurrencyShortT
 2025-12-01;"Food / Restaurant";"Refund Store";;"DigitalWallet - PLN";"0";PLN;"DigitalWallet - PLN";"35.50";PLN;"2025-12-01 10:00:00";"2025-12-01 10:30:00";
 2025-11-30;"Cloud Services";"HostingProvider";;"MainBank - EUR";"12.50";EUR;"MainBank - EUR";"0";EUR;"2025-11-30 00:00:00";"2025-11-30 12:00:00";
 2025-11-29;"Entertainment / Games";"GameStore";;"DigitalWallet - PLN";"49.99";PLN;"DigitalWallet - PLN";"0";PLN;"2025-11-29 21:00:00";"2025-11-29 21:30:00";
+2025-12-14;"Food / Groceries";"SuperMarket XYZ";;"DigitalWallet - PLN";"125,50";PLN;"DigitalWallet - PLN";"0";PLN;"2025-12-14 10:30:00";"2025-12-14 11:00:00";
