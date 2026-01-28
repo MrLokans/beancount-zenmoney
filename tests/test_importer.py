@@ -7,7 +7,7 @@ from pathlib import Path
 from beancount.core.amount import Amount
 from beancount.core.data import Transaction
 
-from beancount_zenmoney.importer import ZenMoneyImporter
+from beancount_zenmoney.importer import DualCategoryMapValue, ZenMoneyImporter
 
 
 class TestZenMoneyImporterIdentify:
@@ -202,7 +202,7 @@ class TestZenMoneyImporterExtract:
         self,
         sample_csv_path: str,
         account_map: dict[str, str],
-        category_map: dict[str, str],
+        category_map: dict[str, str | DualCategoryMapValue],
     ) -> None:
         """Test that categories are mapped to correct expense accounts."""
         importer = ZenMoneyImporter(account_map=account_map, category_map=category_map)
@@ -240,6 +240,50 @@ class TestZenMoneyImporterExtract:
         dates = {t.date for t in transactions}
         assert date(2025, 12, 15) in dates  # Salary
         assert date(2025, 11, 29) in dates  # Games purchase
+
+    def test_extract_with_typeddict_category_mapping_expense(
+        self, tmp_path: Path, account_map: dict[str, str], category_map: dict[str, str | DualCategoryMapValue]
+    ) -> None:
+        """Test extraction of expense with a TypedDict category mapping."""
+        csv_file = tmp_path / "zen_typeddict_expense.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            '2025-12-01;"DualCategory";"Shop A";;"MainBank - PLN";"100";PLN;'
+            '"MainBank - PLN";"0";PLN;"2025-12-01 00:00:00";"2025-12-01 00:00:00";\n',
+            encoding="utf-8",
+        )
+        importer = ZenMoneyImporter(account_map=account_map, category_map=category_map)
+        entries = importer.extract(str(csv_file), existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        assert len(transactions) == 1
+        expense_posting = next((p for p in transactions[0].postings if p.account.startswith("Expenses:")), None)
+        assert expense_posting is not None
+        assert expense_posting.account == "Expenses:Dual"
+
+    def test_extract_with_typeddict_category_mapping_income(
+        self, tmp_path: Path, account_map: dict[str, str], category_map: dict[str, str | DualCategoryMapValue]
+    ) -> None:
+        """Test extraction of income with a TypedDict category mapping."""
+        csv_file = tmp_path / "zen_typeddict_income.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            '2025-12-02;"DualCategory";"Client B";;"MainBank - PLN";"0";PLN;'
+            '"MainBank - PLN";"200";PLN;"2025-12-02 00:00:00";"2025-12-02 00:00:00";\n',
+            encoding="utf-8",
+        )
+        importer = ZenMoneyImporter(account_map=account_map, category_map=category_map)
+        entries = importer.extract(str(csv_file), existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        assert len(transactions) == 1
+        income_posting = next((p for p in transactions[0].postings if p.account.startswith("Income:")), None)
+        assert income_posting is not None
+        assert income_posting.account == "Income:Dual"
 
 
 class TestZenMoneyImporterEdgeCases:
