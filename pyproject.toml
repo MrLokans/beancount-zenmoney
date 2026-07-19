@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "beancount-zenmoney"
-version = "0.1.1a1"
+version = "0.1.3"
 description = "Beancount importer for Zenmoney exports"
 readme = "README.md"
 license = "MIT"
