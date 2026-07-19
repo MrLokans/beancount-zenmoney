@@ -144,8 +144,8 @@ class ZenMoneyImporter(Importer):
         except ValueError:
             return None
 
-        outcome_str = row.get("outcome", "0").strip() or "0"
-        income_str = row.get("income", "0").strip() or "0"
+        outcome_str = row.get("outcome", "0").strip().replace(",", ".") or "0"
+        income_str = row.get("income", "0").strip().replace(",", ".") or "0"
 
         try:
             outcome = Decimal(outcome_str)
