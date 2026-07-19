@@ -8,6 +8,7 @@ import datetime
 import logging
 from decimal import Decimal
 from pathlib import Path
+from typing import TypedDict
 
 from beancount.core import data
 from beancount.core.amount import Amount
@@ -35,13 +36,18 @@ ZENMONEY_HEADERS = frozenset(
 )
 
 
+class DualCategoryMapValue(TypedDict):
+    income: str
+    expense: str
+
+
 class ZenMoneyImporter(Importer):
     """Importer for ZenMoney CSV exports."""
 
     def __init__(
         self,
         account_map: dict[str, str],
-        category_map: dict[str, str] | None = None,
+        category_map: dict[str, str | DualCategoryMapValue] | None = None,
         base_account: str = "Assets:ZenMoney",
         default_expense: str = "Expenses:Unknown",
         default_income: str = "Income:Unknown",
@@ -322,5 +328,11 @@ class ZenMoneyImporter(Importer):
 
     def _map_category(self, category: str, is_expense: bool) -> str:
         if category in self._category_map:
-            return self._category_map[category]
+            mapped_value = self._category_map[category]
+            if isinstance(mapped_value, dict):
+                if is_expense:
+                    return mapped_value.get("expense", self._default_expense)
+                else:
+                    return mapped_value.get("income", self._default_income)
+            return mapped_value
         return self._default_expense if is_expense else self._default_income

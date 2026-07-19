@@ -41,6 +41,7 @@ account_map = {
 category_map = {
     "Salary": "Income:Salary",
     "Food / Groceries": "Expenses:Food:Groceries",
+    "Gifts": {"income": "Income:Gifts", "expense": "Expenses:Gifts"},
 }
 
 importers = [
