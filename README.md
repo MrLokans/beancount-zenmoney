@@ -22,7 +22,7 @@ uv add beancount-zenmoney
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Beancount 3.x
 - beangulp
 
@@ -66,31 +66,24 @@ ZenMoneyImporter(
     account_map={
         "Bank - PLN": "Assets:Bank:PLN",
     },
-
     # Optional: Map Zenmoney categories to Beancount accounts
     category_map={
         "Food": "Expenses:Food",
     },
-
     # Optional: Add tags to transactions by Zenmoney category (a string or a set of strings)
     tag_map={
         "Food / Groceries": "groceries",
         "Travel": {"travel", "vacation"},
     },
-
     # Optional: Base account for the importer (default: "Assets:ZenMoney")
     base_account="Assets:Import:ZenMoney",
-
     # Optional: Default expense account for unknown categories
     default_expense="Expenses:Unknown",
-
     # Optional: Default income account for unknown categories
     default_income="Income:Unknown",
-
     # Optional: Account for Zenmoney accounts missing from account_map
     # (default: "Assets:Unknown"; a warning is logged once per unknown account)
     default_account="Assets:Unknown",
-
     # Optional: Transaction flag - "*" for cleared (default), "!" for pending
     flag="!",
 )
@@ -150,6 +143,7 @@ Rows where both amounts are zero are skipped with a warning. A row with an unrea
 
 ```python
 import logging
+
 logging.basicConfig(level=logging.WARNING)
 ```
 

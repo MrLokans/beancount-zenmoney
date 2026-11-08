@@ -270,15 +270,12 @@ class ZenMoneyImporter(Importer):
         return self._default_account
 
     def _map_category(self, category: str, is_expense: bool) -> str:
-        if category in self._category_map:
-            mapped_value = self._category_map[category]
-            if isinstance(mapped_value, dict):
-                if is_expense:
-                    return mapped_value.get("expense", self._default_expense)
-                else:
-                    return mapped_value.get("income", self._default_income)
-            return mapped_value
-        return self._default_expense if is_expense else self._default_income
+        mapped = self._category_map.get(category)
+        if isinstance(mapped, str):
+            return mapped
+        if is_expense:
+            return mapped.get("expense", self._default_expense) if mapped else self._default_expense
+        return mapped.get("income", self._default_income) if mapped else self._default_income
 
     def _get_tags_for_category(self, category: str) -> frozenset[str]:
         if not category or category not in self._tag_map:
