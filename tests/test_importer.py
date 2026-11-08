@@ -1,9 +1,11 @@
 """Tests for the Zenmoney importer."""
 
+import logging
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
 from beancount.core.amount import Amount
 from beancount.core.data import Transaction
 
@@ -126,6 +128,7 @@ class TestZenMoneyImporterExtract:
         accounts = {p.account for p in transfer_txn.postings}
         assert "Assets:Bank:MainBank:PLN" in accounts
         assert "Assets:Bank:DigitalWallet:PLN" in accounts
+        assert len(transfer_txn.postings) == 2
 
     def test_extract_currency_exchange(self, sample_csv_path: str, account_map: dict[str, str]) -> None:
         importer = ZenMoneyImporter(account_map=account_map)
@@ -322,6 +325,97 @@ class TestZenMoneyImporterEdgeCases:
         assert len(transactions) == 1
         accounts = {p.account for p in transactions[0].postings}
         assert "Assets:Unknown" in accounts
+
+    def test_unknown_account_falls_back_to_assets_unknown(
+        self, tmp_path: Path, account_map: dict[str, str], caplog: pytest.LogCaptureFixture
+    ) -> None:
+        csv_file = tmp_path / "zen.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            '2025-12-01;;;;"mBank - PLN";"100";PLN;'
+            '"MainBank - PLN";"100";PLN;"2025-12-01 00:00:00";"2025-12-01 00:00:00";\n'
+            '2025-12-02;;;;"mBank - PLN";"50";PLN;'
+            '"MainBank - PLN";"50";PLN;"2025-12-02 00:00:00";"2025-12-02 00:00:00";\n',
+            encoding="utf-8",
+        )
+        importer = ZenMoneyImporter(account_map=account_map)
+        with caplog.at_level(logging.WARNING):
+            entries = importer.extract(str(csv_file), existing=[])
+        transactions = [e for e in entries if isinstance(e, Transaction)]
+
+        assert len(transactions) == 2
+        assert {p.account for p in transactions[0].postings} == {"Assets:Unknown", "Assets:Bank:MainBank:PLN"}
+        assert sum("mBank - PLN" in r.getMessage() for r in caplog.records) == 1
+
+    def test_amounts_padded_to_two_decimals(self, tmp_path: Path, account_map: dict[str, str]) -> None:
+        csv_file = tmp_path / "zen.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            '2025-12-01;;;;"Bank - USD";"100";USD;'
+            '"Bank - BYN";"197";BYN;"2025-12-01 00:00:00";"2025-12-01 00:00:00";\n'
+            '2025-12-02;"Food";"Store";;"Bank - USD";"102.8698";USD;'
+            '"Bank - USD";"0";USD;"2025-12-02 00:00:00";"2025-12-02 00:00:00";\n',
+            encoding="utf-8",
+        )
+        accounts = account_map | {"Bank - USD": "Assets:Bank:USD", "Bank - BYN": "Assets:Bank:BYN"}
+        importer = ZenMoneyImporter(account_map=accounts)
+        entries = importer.extract(str(csv_file), existing=[])
+        exchange, expense = sorted((e for e in entries if isinstance(e, Transaction)), key=lambda t: t.date)
+
+        outcome, income = exchange.postings
+        assert outcome.units.number.as_tuple() == Decimal("-100.00").as_tuple()
+        assert income.units.number.as_tuple() == Decimal("197.00").as_tuple()
+        assert income.price == Amount(Decimal("100") / Decimal("197"), "USD")
+        assert expense.postings[0].units.number.as_tuple() == Decimal("-102.8698").as_tuple()
+
+    def test_transfer_with_fee_books_difference_to_default_expense(
+        self, tmp_path: Path, account_map: dict[str, str]
+    ) -> None:
+        csv_file = tmp_path / "zen.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            '2025-12-01;;;;"MainBank - PLN";"51.2";PLN;'
+            '"DigitalWallet - PLN";"50";PLN;"2025-12-01 00:00:00";"2025-12-01 00:00:00";\n',
+            encoding="utf-8",
+        )
+        importer = ZenMoneyImporter(account_map=account_map)
+        (txn,) = [e for e in importer.extract(str(csv_file), existing=[]) if isinstance(e, Transaction)]
+
+        assert len(txn.postings) == 3
+        assert txn.postings[2].account == "Expenses:Unknown"
+        assert txn.postings[2].units == Amount(Decimal("1.20"), "PLN")
+
+    def _write_row(self, tmp_path: Path, date: str, outcome: str) -> Path:
+        csv_file = tmp_path / "zen.csv"
+        csv_file.write_text(
+            "date;categoryName;payee;comment;outcomeAccountName;outcome;"
+            "outcomeCurrencyShortTitle;incomeAccountName;income;"
+            "incomeCurrencyShortTitle;createdDate;changedDate;qrCode\n"
+            f'{date};"Food";"Store";;"MainBank - PLN";"{outcome}";PLN;'
+            '"MainBank - PLN";"0";PLN;"2025-12-01 00:00:00";"2025-12-01 00:00:00";\n',
+            encoding="utf-8",
+        )
+        return csv_file
+
+    def test_unparseable_amount_raises_with_line(self, tmp_path: Path, account_map: dict[str, str]) -> None:
+        csv_file = self._write_row(tmp_path, "2025-12-01", "1 000")
+        importer = ZenMoneyImporter(account_map=account_map)
+
+        with pytest.raises(ValueError, match=r":2: invalid amount outcome='1 000'"):
+            importer.extract(str(csv_file), existing=[])
+
+    def test_unparseable_date_raises_with_line(self, tmp_path: Path, account_map: dict[str, str]) -> None:
+        csv_file = self._write_row(tmp_path, "2025-13-45", "50")
+        importer = ZenMoneyImporter(account_map=account_map)
+
+        with pytest.raises(ValueError, match=r":2: invalid date '2025-13-45'"):
+            importer.extract(str(csv_file), existing=[])
 
 
 class TestCurrencyExchange:

@@ -6,7 +6,7 @@ This module provides a beangulp-based importer for Zenmoney CSV exports.
 import csv
 import datetime
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TypedDict
 
@@ -52,7 +52,7 @@ class ZenMoneyImporter(Importer):
         base_account: str = "Assets:ZenMoney",
         default_expense: str = "Expenses:Unknown",
         default_income: str = "Income:Unknown",
-        default_account: str | None = None,
+        default_account: str = "Assets:Unknown",
         flag: str = "*",
     ) -> None:
         self._account_map = account_map
@@ -62,6 +62,7 @@ class ZenMoneyImporter(Importer):
         self._default_expense = default_expense
         self._default_income = default_income
         self._default_account = default_account
+        self._warned_accounts: set[str] = set()
         self._flag = flag
 
     def identify(self, filepath: str) -> bool:
@@ -135,22 +136,18 @@ class ZenMoneyImporter(Importer):
                 if txn:
                     entries.append(txn)
                 else:
-                    # Log skipped rows
                     date_str = row.get("date", "")
                     payee = row.get("payee", "")
-                    logger.warning("Skipped row %d: date=%r, payee=%r", lineno, date_str, payee)
+                    logger.warning("Skipped row %d with no amounts: date=%r, payee=%r", lineno, date_str, payee)
 
         return entries
 
     def _parse_row(self, row: dict[str, str], filepath: str, lineno: int) -> Transaction | None:
         date_str = row.get("date", "").strip()
-        if not date_str:
-            return None
-
         try:
             txn_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-        except ValueError:
-            return None
+        except ValueError as e:
+            raise ValueError(f"{filepath}:{lineno}: invalid date {date_str!r}") from e
 
         outcome_str = row.get("outcome", "0").strip().replace(",", ".") or "0"
         income_str = row.get("income", "0").strip().replace(",", ".") or "0"
@@ -158,8 +155,10 @@ class ZenMoneyImporter(Importer):
         try:
             outcome = Decimal(outcome_str)
             income = Decimal(income_str)
-        except (ValueError, TypeError):
-            return None
+        except (ValueError, TypeError, InvalidOperation) as e:
+            raise ValueError(
+                f"{filepath}:{lineno}: invalid amount outcome={outcome_str!r} income={income_str!r}"
+            ) from e
 
         outcome_account_name = row.get("outcomeAccountName", "").strip()
         income_account_name = row.get("incomeAccountName", "").strip()
@@ -188,8 +187,8 @@ class ZenMoneyImporter(Importer):
             return None
 
         # Build narration from payee and comment
-        narration = comment if comment else ""
-        txn_payee = payee if payee else (comment if not narration else None)
+        narration = comment
+        txn_payee = payee or None
 
         # Create transaction metadata with line number and timestamps
         meta = data.new_metadata(filepath, lineno)
@@ -223,112 +222,52 @@ class ZenMoneyImporter(Importer):
         income_currency: str,
         category: str,
     ) -> list[Posting]:
-        postings: list[Posting] = []
+        def post(account: str, number: Decimal, currency: str, price: Amount | None = None) -> Posting:
+            # Beancount infers tolerance from fractional digits; integer amounts get zero tolerance
+            exponent = number.as_tuple().exponent
+            if isinstance(exponent, int) and exponent > -2:
+                number = number.quantize(Decimal("0.01"))
+            return Posting(account, Amount(number, currency), None, price, None, None)
 
         outcome_account = self._map_account(outcome_account_name)
         income_account = self._map_account(income_account_name)
 
-        has_outcome = outcome > 0
-        has_income = income > 0
-
-        if has_outcome and has_income:
-            # Transfer between accounts or currency exchange
-            is_currency_exchange = outcome_currency != income_currency
-
-            # Outcome posting (money leaving)
-            postings.append(
-                Posting(
-                    outcome_account,
-                    Amount(-outcome, outcome_currency),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            )
-
-            # Income posting (money arriving)
-            if is_currency_exchange:
-                # Add price annotation for currency exchange
-                # Price = outcome / income (how much outcome currency per 1 income currency)
-                price_per_unit = outcome / income
-                postings.append(
-                    Posting(
-                        income_account,
-                        Amount(income, income_currency),
-                        None,
-                        Amount(price_per_unit, outcome_currency),  # price
-                        None,
-                        None,
-                    )
-                )
-            else:
-                postings.append(
-                    Posting(
-                        income_account,
-                        Amount(income, income_currency),
-                        None,
-                        None,
-                        None,
-                        None,
-                    )
-                )
-        elif has_outcome:
-            # Expense transaction
+        if outcome > 0 and income > 0:
+            if outcome_currency != income_currency:
+                # Price is outcome currency per 1 unit of income currency
+                price = Amount(outcome / income, outcome_currency)
+                return [
+                    post(outcome_account, -outcome, outcome_currency),
+                    post(income_account, income, income_currency, price),
+                ]
+            postings = [
+                post(outcome_account, -outcome, outcome_currency),
+                post(income_account, income, income_currency),
+            ]
+            if fee := outcome - income:
+                postings.append(post(self._default_expense, fee, outcome_currency))
+            return postings
+        if outcome > 0:
             expense_account = self._map_category(category, is_expense=True)
-            postings.append(
-                Posting(
-                    outcome_account,
-                    Amount(-outcome, outcome_currency),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            )
-            postings.append(
-                Posting(
-                    expense_account,
-                    Amount(outcome, outcome_currency),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            )
-        elif has_income:
-            # Income transaction
+            return [
+                post(outcome_account, -outcome, outcome_currency),
+                post(expense_account, outcome, outcome_currency),
+            ]
+        if income > 0:
             income_category_account = self._map_category(category, is_expense=False)
-            postings.append(
-                Posting(
-                    income_account,
-                    Amount(income, income_currency),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            )
-            postings.append(
-                Posting(
-                    income_category_account,
-                    Amount(-income, income_currency),
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            )
-
-        return postings
+            return [
+                post(income_account, income, income_currency),
+                post(income_category_account, -income, income_currency),
+            ]
+        return []
 
     def _map_account(self, zenmoney_account: str) -> str:
         if zenmoney_account in self._account_map:
             return self._account_map[zenmoney_account]
-        if self._default_account:
-            return self._default_account
-        safe_name = zenmoney_account.replace(" ", "").replace("-", ":")
-        return f"Assets:{safe_name}"
+        if zenmoney_account not in self._warned_accounts:
+            self._warned_accounts.add(zenmoney_account)
+            logger.warning("Unknown Zenmoney account %r, using %s", zenmoney_account, self._default_account)
+        return self._default_account
 
     def _map_category(self, category: str, is_expense: bool) -> str:
         if category in self._category_map:

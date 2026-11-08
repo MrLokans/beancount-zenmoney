@@ -72,6 +72,12 @@ ZenMoneyImporter(
         "Food": "Expenses:Food",
     },
 
+    # Optional: Add tags to transactions by Zenmoney category (a string or a set of strings)
+    tag_map={
+        "Food / Groceries": "groceries",
+        "Travel": {"travel", "vacation"},
+    },
+
     # Optional: Base account for the importer (default: "Assets:ZenMoney")
     base_account="Assets:Import:ZenMoney",
 
@@ -81,7 +87,8 @@ ZenMoneyImporter(
     # Optional: Default income account for unknown categories
     default_income="Income:Unknown",
 
-    # Optional: Default asset account for unknown Zenmoney accounts
+    # Optional: Account for Zenmoney accounts missing from account_map
+    # (default: "Assets:Unknown"; a warning is logged once per unknown account)
     default_account="Assets:Unknown",
 
     # Optional: Transaction flag - "*" for cleared (default), "!" for pending
@@ -98,6 +105,7 @@ ZenMoneyImporter(
 | Expense (outcome only) | Debit from asset, credit to expense |
 | Income (income only) | Credit to asset, debit from income |
 | Transfer (same currency) | Debit from source, credit to destination |
+| Transfer with fee (amounts differ) | Debit source, credit destination, difference to default_expense |
 | Currency exchange | Debit in one currency, credit in another with price |
 | Refund | Credit to asset, debit from expense |
 
@@ -110,6 +118,8 @@ Currency exchanges automatically include price annotations for proper cost track
   Assets:Bank:PKO:PLN   -4250.00 PLN
   Assets:Bank:PKO:EUR    1000.00 EUR @ 4.25 PLN
 ```
+
+Amounts are written with at least two decimal places (e.g. `197` becomes `197.00`), because Beancount infers its balance tolerance from the digits present and gives integer amounts zero tolerance.
 
 ### Metadata Preservation
 
@@ -131,12 +141,12 @@ The importer implements `date()` and `filename()` methods for beangulp archiving
 ```bash
 # Archive files with automatic date-based naming
 beangulp archive -e ledger.beancount import.py zenmoney_export.csv
-# Creates: documents/Assets/Import/ZenMoney/2025-11-29-to-2025-12-15.zenmoney.csv
+# Creates: documents/Assets/Import/ZenMoney/2025-12-15.zenmoney-2025-11-29-to-2025-12-15.csv
 ```
 
 ### Logging
 
-Skipped rows are logged as warnings for troubleshooting:
+Rows where both amounts are zero are skipped with a warning. A row with an unreadable date or amount stops the import with a `ValueError` naming the file, line and value. Unknown Zenmoney accounts log one warning each:
 
 ```python
 import logging
