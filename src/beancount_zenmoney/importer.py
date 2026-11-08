@@ -6,6 +6,7 @@ This module provides a beangulp-based importer for Zenmoney CSV exports.
 import csv
 import datetime
 import logging
+from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import TypedDict
@@ -47,8 +48,8 @@ class ZenMoneyImporter(Importer):
     def __init__(
         self,
         account_map: dict[str, str],
-        category_map: dict[str, str | DualCategoryMapValue] | None = None,
-        tag_map: dict[str, str | set[str]] | None = None,
+        category_map: Mapping[str, str | DualCategoryMapValue] | None = None,
+        tag_map: Mapping[str, str | set[str]] | None = None,
         base_account: str = "Assets:ZenMoney",
         default_expense: str = "Expenses:Unknown",
         default_income: str = "Income:Unknown",

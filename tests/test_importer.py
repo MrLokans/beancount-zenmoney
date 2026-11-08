@@ -367,10 +367,10 @@ class TestZenMoneyImporterEdgeCases:
         exchange, expense = sorted((e for e in entries if isinstance(e, Transaction)), key=lambda t: t.date)
 
         outcome, income = exchange.postings
-        assert outcome.units.number.as_tuple() == Decimal("-100.00").as_tuple()
-        assert income.units.number.as_tuple() == Decimal("197.00").as_tuple()
+        assert str(outcome.units) == "-100.00 USD"
+        assert str(income.units) == "197.00 BYN"
         assert income.price == Amount(Decimal("100") / Decimal("197"), "USD")
-        assert expense.postings[0].units.number.as_tuple() == Decimal("-102.8698").as_tuple()
+        assert str(expense.postings[0].units) == "-102.8698 USD"
 
     def test_transfer_with_fee_books_difference_to_default_expense(
         self, tmp_path: Path, account_map: dict[str, str]

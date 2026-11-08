@@ -17,7 +17,7 @@ format-check:
 	uv run ruff format --check .
 
 typecheck:
-	uv run ty check src
+	uv run ty check
 
 check: lint format-check typecheck test
 
